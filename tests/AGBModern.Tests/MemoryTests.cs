@@ -149,6 +149,17 @@ public class MemoryTests
     }
 
     [Fact]
+    public void ExtendedRAMFillsItsWholeRegion()
+    {
+        Memory.Write32(0x01FFFFFC, 0x12345678);
+
+        Assert.Equal(0x12345678u, Memory.Read32(0x01FFFFFC));
+        Assert.Equal(0x12345678u, Memory.Poke<uint>(0x01FFFFFC));
+        Assert.Equal((byte)0x12, Memory.Read8(0x01FFFFFF));
+        Assert.Equal(0u, Memory.Read32(0x010FFFFC));
+    }
+
+    [Fact]
     public void FreedExtendedRAMIsGivenOutAgainAndJoinsItsNeighbors()
     {
         uint first = Memory.Allocate(16);

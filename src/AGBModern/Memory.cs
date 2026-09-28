@@ -33,7 +33,7 @@ public static class Memory
     /// Extra memory at 0x01000000 that the real GBA doesn't have. Use it when your mod needs the game
     /// to read something of yours, and grab a piece of it with <see cref="Allocate"/>.
     /// </summary>
-    public static readonly byte[] ExtendedRAM = new byte[0x100000];
+    public static readonly byte[] ExtendedRAM = new byte[0x1000000];
 
     private static readonly SortedList<int, int> FreeBlocks = new() { [0] = ExtendedRAM.Length };
     private static readonly Dictionary<int, int> AllocatedBlocks = [];
@@ -181,7 +181,7 @@ public static class Memory
             case 0x0 when address < BIOSSize:
                 return BIOSOpcode;
             case 0x1:
-                return Unsafe.ReadUnaligned<uint>(ref ExtendedRAM[aligned & 0xFFFFC]);
+                return Unsafe.ReadUnaligned<uint>(ref ExtendedRAM[aligned & 0xFFFFFC]);
             case 0x2 or 0x3 when !_isWRAMEnabled:
                 return openBus;
             case 0x2 or 0x3:
@@ -213,7 +213,7 @@ public static class Memory
         switch (address >> 24)
         {
             case 0x1:
-                Unsafe.WriteUnaligned(ref ExtendedRAM[aligned & 0xFFFFC], value);
+                Unsafe.WriteUnaligned(ref ExtendedRAM[aligned & 0xFFFFFC], value);
                 break;
             case 0x2 or 0x3 when _isWRAMEnabled:
                 Unsafe.WriteUnaligned(ref IWRAM[aligned & 0x7FFC], value);
@@ -250,7 +250,7 @@ public static class Memory
         switch (address >> 24)
         {
             case 0x1:
-                Unsafe.WriteUnaligned(ref ExtendedRAM[aligned & 0xFFFFE], value);
+                Unsafe.WriteUnaligned(ref ExtendedRAM[aligned & 0xFFFFFE], value);
                 break;
             case 0x2 or 0x3 when _isWRAMEnabled:
                 Unsafe.WriteUnaligned(ref IWRAM[aligned & 0x7FFE], value);
@@ -287,7 +287,7 @@ public static class Memory
         switch (address >> 24)
         {
             case 0x1:
-                ExtendedRAM[address & 0xFFFFF] = value;
+                ExtendedRAM[address & 0xFFFFFF] = value;
                 break;
             case 0x2 or 0x3 when _isWRAMEnabled:
                 IWRAM[address & 0x7FFF] = value;
@@ -380,7 +380,7 @@ public static class Memory
     {
         (byte[]? region, uint mask) = (address >> 24) switch
         {
-            0x1 => (ExtendedRAM, 0xFFFFFu),
+            0x1 => (ExtendedRAM, 0xFFFFFFu),
             0x2 => (EWRAM, 0x3FFFFu),
             0x3 => (IWRAM, 0x7FFFu),
             >= 0x8 and <= 0xD => (ROM, 0x1FFFFFFu),
