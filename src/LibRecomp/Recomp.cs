@@ -361,7 +361,10 @@ public static class Recomp
     private static bool TryLookupFunc(uint address, [MaybeNullWhen(false)] out RecompFunc function)
     {
         address &= ~1u;
-        if (Functions.TryGetValue(address, out function))
+        // The Game Pak ROM mirrors execute the same registered functions.
+        if (Functions.TryGetValue(address, out function)
+            || (address is >= 0x0A000000u and < 0x0E000000u
+                && Functions.TryGetValue(0x08000000u | (address & 0x01FFFFFFu), out function)))
         {
             return true;
         }

@@ -35,6 +35,64 @@ public sealed class RuntimeTests : IDisposable
         Assert.Equal(text, SemanticVersion.Parse(text).ToString());
     }
 
+    [Theory]
+    [InlineData(0x08100300u, 0x0A100300u)]
+    [InlineData(0x08100300u, 0x0C100300u)]
+    [InlineData(0x09100300u, 0x0B100300u)]
+    [InlineData(0x09100300u, 0x0D100300u)]
+    public void ROMMirrorsResolveTheRegisteredDelegateAndItsCurrentPatch(uint canonical, uint mirror)
+    {
+        RecompFunc patch = ctx => ctx.R0 = 1;
+        RecompFunc dispatch = ctx => patch(ctx);
+        Recomp.RegisterFunctions([(canonical, dispatch)]);
+        Recomp.RegisterRAMFunctions([]);
+
+        foreach (uint thumbBit in new[] { 0u, 1u })
+        {
+            var function = Recomp.LookupFunc(mirror | thumbBit);
+            Assert.Same(dispatch, function);
+
+            var ctx = new RecompContext { R14 = 0x08001001 };
+            function(ctx);
+            Assert.Equal(1u, ctx.R0);
+
+            patch = context => context.R0 = 2;
+            Recomp.IndirectJump(ctx, mirror | thumbBit);
+            Assert.Equal(2u, ctx.R0);
+            Assert.False(Recomp.IsUnwinding);
+            Assert.Equal(0x08001001u, ctx.R14);
+            patch = context => context.R0 = 1;
+        }
+    }
+
+    [Fact]
+    public void AnExplicitMirrorRegistrationTakesPriority()
+    {
+        RecompFunc canonical = _ => { };
+        RecompFunc mirror = _ => { };
+        Recomp.RegisterFunctions([(0x08100300, canonical), (0x0A100300, mirror)]);
+        Recomp.RegisterRAMFunctions([]);
+
+        Assert.Same(mirror, Recomp.LookupFunc(0x0A100301));
+    }
+
+    [Theory]
+    [InlineData(0x0A100301u)]
+    [InlineData(0x0C100301u)]
+    [InlineData(0x06100301u)]
+    [InlineData(0x0E100301u)]
+    public void MissingMirroredTargetsAndNonROMAddressesStillFail(uint address)
+    {
+        Recomp.RegisterFunctions([(0x08100300, _ => { })]);
+        Recomp.RegisterRAMFunctions([]);
+        if (address is >= 0x0A000000 and < 0x0E000000)
+            Recomp.RegisterFunctions([]);
+
+        var error = Assert.Throws<InvalidOperationException>(() => Recomp.LookupFunc(address));
+
+        Assert.Equal($"No recompiled function at 0x{address & ~1u:X8}.", error.Message);
+    }
+
     [Fact]
     public void CodeCopiedToRAMRunsTheFunctionItWasCopiedFromWhenTwoLookAlike()
     {
