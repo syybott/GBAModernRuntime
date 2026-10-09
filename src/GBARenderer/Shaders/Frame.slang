@@ -661,28 +661,30 @@ uint3 ColorAt(float2 position)
     }
 
     uint3 color = Channels(topColor);
+    bool effectsEnabled = (window & WindowEffects) != 0;
+    bool isSemiTransparent = topLayer == LayerOBJ && object.isSemiTransparent;
 
-    if ((window & WindowEffects) != 0)
+    if (isSemiTransparent || effectsEnabled)
     {
         uint blend = current.Register(line, BLDCNT);
         uint effect = (blend >> 6) & 3;
-        bool isSemiTransparent = topLayer == LayerOBJ && object.isSemiTransparent;
-        bool topIsFirstTarget = isSemiTransparent || (blend & (1u << topLayer)) != 0;
+        bool topIsFirstTarget = (blend & (1u << topLayer)) != 0;
         bool underIsSecondTarget = (blend & (0x100u << underLayer)) != 0;
 
-        if (underIsSecondTarget && (isSemiTransparent || (effect == 1 && topIsFirstTarget)))
+        // Semi-transparent OBJs force alpha even when window effects or ordinary first targets are disabled.
+        if (underIsSecondTarget && (isSemiTransparent || (effectsEnabled && effect == 1 && topIsFirstTarget)))
         {
             uint alpha = current.Register(line, BLDALPHA);
             uint eva = min(alpha & 0x1F, 16);
             uint evb = min((alpha >> 8) & 0x1F, 16);
             color = min((color * eva + Channels(underColor) * evb) >> 4, uint3(31, 31, 31));
         }
-        else if (effect == 2 && topIsFirstTarget)
+        else if (effectsEnabled && effect == 2 && topIsFirstTarget)
         {
             uint evy = min(current.Register(line, BLDY) & 0x1F, 16);
             color += ((31 - color) * evy) >> 4;
         }
-        else if (effect == 3 && topIsFirstTarget)
+        else if (effectsEnabled && effect == 3 && topIsFirstTarget)
         {
             uint evy = min(current.Register(line, BLDY) & 0x1F, 16);
             color -= (color * evy) >> 4;
