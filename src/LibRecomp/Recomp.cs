@@ -12,7 +12,7 @@ public delegate void RecompFunc(RecompContext ctx);
 /// <summary>
 /// This is where your project sets its game up and starts it. Register everything first, then call
 /// <see cref="Start"/>, and once <see cref="IsROMValid"/> says the player's ROM is stored, call
-/// <see cref="StartGame"/>.
+/// <see cref="StartGame(string)"/>.
 /// </summary>
 /// <example>
 /// <code>
@@ -58,7 +58,7 @@ public static class Recomp
     /// <summary>The folder where stored ROMs, saves, mods and their settings go.</summary>
     public static string ConfigPath => _configPath ?? throw new InvalidOperationException("Call RegisterConfigPath first.");
 
-    /// <summary>The game <see cref="StartGame"/> started, if there is one.</summary>
+    /// <summary>The game <see cref="StartGame(string)"/> started, if there is one.</summary>
     public static GameEntry? CurrentGame { get; private set; }
 
     /// <summary>This is read by recompiled code, so you won't need it yourself.</summary>
@@ -154,7 +154,13 @@ public static class Recomp
     /// Loads a game's stored ROM, save and mods, and runs it on a thread of its own. If something stops
     /// it, the player is told why and this returns false.
     /// </summary>
-    public static bool StartGame(string gameId)
+    public static bool StartGame(string gameId) => StartGame(gameId, paced: true);
+
+    /// <summary>
+    /// Loads and runs the game with optional wall-clock frame pacing. Setting <paramref name="paced"/>
+    /// to false removes only the video frame wait; all simulated cycles and hardware events still run.
+    /// </summary>
+    public static bool StartGame(string gameId, bool paced)
     {
         var game = Games[gameId];
         if (LoadStoredROM(gameId) is not { } rom)
@@ -181,7 +187,7 @@ public static class Recomp
         _saveFile = saveFile;
         Video.FrameFinished += OnFrameFinished;
         Power.WhileStopped = StopIfQuitting;
-        Video.Start(paced: true);
+        Video.Start(paced);
         APU.Start();
 
         _gameThread = new Thread(Run, GameStackSize) { Name = "Game", IsBackground = true };

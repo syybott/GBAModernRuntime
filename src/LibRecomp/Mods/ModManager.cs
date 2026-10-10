@@ -9,7 +9,7 @@ namespace LibRecomp.Mods;
 /// <summary>
 /// Every mod the player has, both from the <c>mods</c> folder in <see cref="Recomp.ConfigPath"/>
 /// and the ones built into your project, along with which ones are on and the order they load in.
-/// <see cref="Recomp.Start"/> finds them, and <see cref="Recomp.StartGame"/> loads the ones that
+/// <see cref="Recomp.Start"/> finds them, and <see cref="Recomp.StartGame(string)"/> loads the ones that
 /// are on.
 /// </summary>
 public static class ModManager

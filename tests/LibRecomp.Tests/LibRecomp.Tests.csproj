@@ -19,6 +19,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\LibRecomp\LibRecomp.csproj" />
+    <ProjectReference Include="../PacingProbe/PacingProbe.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <Target Name="CopyPacingProbe" AfterTargets="Build">
+    <MSBuild Projects="../PacingProbe/PacingProbe.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="PacingProbeTarget" />
+    </MSBuild>
+    <PropertyGroup><PacingProbeDirectory>@(PacingProbeTarget->'%(RootDir)%(Directory)')</PacingProbeDirectory></PropertyGroup>
+    <ItemGroup><PacingProbeFiles Include="$(PacingProbeDirectory)*" /></ItemGroup>
+    <Copy SourceFiles="@(PacingProbeFiles)" DestinationFolder="$(OutDir)pacing-probe" />
+  </Target>
 
 </Project>
